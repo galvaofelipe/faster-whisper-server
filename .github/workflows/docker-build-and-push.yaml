@@ -39,6 +39,9 @@ jobs:
       - name: Build and push CUDA image
         uses: docker/build-push-action@v5
         with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
           context: .
           file: Dockerfile.cuda
           push: true
@@ -63,6 +66,9 @@ jobs:
       - name: Build and push CPU image
         uses: docker/build-push-action@v5
         with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
           context: .
           file: Dockerfile.cpu
           push: true
