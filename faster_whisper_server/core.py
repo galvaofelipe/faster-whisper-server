@@ -70,17 +70,19 @@ class Segment(BaseModel):
                 avg_logprob=segment.avg_logprob,
                 compression_ratio=segment.compression_ratio,
                 no_speech_prob=segment.no_speech_prob,
-                words=[
-                    Word(
-                        start=word.start,
-                        end=word.end,
-                        word=word.word,
-                        probability=word.probability,
-                    )
-                    for word in segment.words
-                ]
-                if segment.words is not None
-                else None,
+                words=(
+                    [
+                        Word(
+                            start=word.start,
+                            end=word.end,
+                            word=word.word,
+                            probability=word.probability,
+                        )
+                        for word in segment.words
+                    ]
+                    if segment.words is not None
+                    else None
+                ),
             )
 
 
