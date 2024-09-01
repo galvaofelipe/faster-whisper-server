@@ -73,7 +73,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                 files={"file": file},
                 data={
                     "model": model,
-                    "response_format": "text" if not format else format,
+                    "response_format": format if format else "text",
                     "temperature": temperature,
                     **({"language": language} if language else {}),
                 },
