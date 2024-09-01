@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Login to Docker Hub
+      - name: Login to Private Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -28,7 +28,7 @@ jobs:
         id: meta-cuda
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             suffix=-cuda,onlatest=true
           tags: |
@@ -39,23 +39,20 @@ jobs:
       - name: Build and push CUDA image
         uses: docker/build-push-action@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
           context: .
           file: Dockerfile.cuda
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta-cuda.outputs.tags }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache-cuda
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache-cuda,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cuda
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cuda,mode=max
 
       # CPU image build
       - name: Docker meta for CPU
         id: meta-cpu
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             suffix=-cpu,onlatest=true
           tags: |
@@ -66,13 +63,11 @@ jobs:
       - name: Build and push CPU image
         uses: docker/build-push-action@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
           context: .
           file: Dockerfile.cpu
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta-cpu.outputs.tags }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache-cpu
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache-cpu,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cpu
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cpu,mode=max
+          
