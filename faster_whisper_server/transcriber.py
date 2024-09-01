@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING
 
 from faster_whisper_server.audio import Audio, AudioStream
 from faster_whisper_server.config import config
-from faster_whisper_server.core import Transcription, Word, common_prefix, to_full_sentences, word_to_text
+from faster_whisper_server.core import (
+    Transcription,
+    Word,
+    common_prefix,
+    to_full_sentences,
+    word_to_text,
+)
 from faster_whisper_server.logger import logger
 
 if TYPE_CHECKING:

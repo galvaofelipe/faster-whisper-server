@@ -34,7 +34,12 @@ from faster_whisper_server.config import (
     Task,
     config,
 )
-from faster_whisper_server.core import Segment, segments_to_srt, segments_to_text, segments_to_vtt
+from faster_whisper_server.core import (
+    Segment,
+    segments_to_srt,
+    segments_to_text,
+    segments_to_vtt,
+)
 from faster_whisper_server.logger import logger
 from faster_whisper_server.server_models import (
     ModelListResponse,
@@ -52,6 +57,7 @@ if TYPE_CHECKING:
 
 loaded_models: OrderedDict[str, WhisperModel] = OrderedDict()
 model_load_lock = asyncio.Lock()
+
 
 async def load_model(model_name: str) -> WhisperModel:
     async with model_load_lock:
@@ -132,7 +138,10 @@ def get_model(
     model_name: Annotated[str, Path(example="Systran/faster-distil-whisper-large-v3")],
 ) -> ModelObject:
     models = huggingface_hub.list_models(
-        model_name=model_name, library="ctranslate2", tags="automatic-speech-recognition", cardData=True
+        model_name=model_name,
+        library="ctranslate2",
+        tags="automatic-speech-recognition",
+        cardData=True,
     )
     models = list(models)
     models.sort(key=lambda model: model.downloads, reverse=True)
@@ -186,11 +195,13 @@ def segments_to_response(
         )
     elif response_format == ResponseFormat.VTT:
         return Response(
-            "".join(segments_to_vtt(segment, i) for i, segment in enumerate(segments)), media_type="text/vtt"
+            "".join(segments_to_vtt(segment, i) for i, segment in enumerate(segments)),
+            media_type="text/vtt",
         )
     elif response_format == ResponseFormat.SRT:
         return Response(
-            "".join(segments_to_srt(segment, i) for i, segment in enumerate(segments)), media_type="text/plain"
+            "".join(segments_to_srt(segment, i) for i, segment in enumerate(segments)),
+            media_type="text/plain",
         )
 
 

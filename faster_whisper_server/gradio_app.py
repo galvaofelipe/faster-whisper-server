@@ -5,8 +5,7 @@ import httpx
 from httpx_sse import connect_sse
 from openai import OpenAI
 
-from faster_whisper_server.config import Config, Task, Language
-from typing import Optional
+from faster_whisper_server.config import Config, Language, Task
 
 TRANSCRIPTION_ENDPOINT = "/v1/audio/transcriptions"
 TRANSLATION_ENDPOINT = "/v1/audio/translations"
@@ -25,10 +24,10 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         task: Task,
         temperature: float,
         stream: bool,
-        language: Optional[str] = None,
-        format: Optional[str] = None,
-        prompt: Optional[str] = None,
-        hotwords: Optional[str] = None,
+        language: str | None = None,
+        fmt: str | None = None,
+        prompt: str | None = None,
+        hotwords: str | None = None,
     ) -> Generator[str, None, None]:
         if task == Task.TRANSCRIBE:
             endpoint = TRANSCRIPTION_ENDPOINT
@@ -43,7 +42,9 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                 temperature,
                 model,
                 language=language,
-                format=format,
+                fmt=fmt,
+                prompt=prompt,
+                hotwords=hotwords,
             ):
                 previous_transcription += transcription
                 yield previous_transcription
@@ -54,7 +55,9 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                 temperature,
                 model,
                 language=language,
-                format=format,
+                fmt=fmt,
+                prompt=prompt,
+                hotwords=hotwords,
             )
 
     def audio_task(
@@ -62,10 +65,10 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         endpoint: str,
         temperature: float,
         model: str,
-        language: Optional[str] = None,
-        format: Optional[str] = None,
-        prompt: Optional[str] = None,
-        hotwords: Optional[str] = None,
+        language: str | None = None,
+        fmt: str | None = None,
+        prompt: str | None = None,
+        hotwords: str | None = None,
     ) -> str:
         with open(file_path, "rb") as file:
             response = http_client.post(
@@ -73,9 +76,11 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                 files={"file": file},
                 data={
                     "model": model,
-                    "response_format": "text" if not format else format,
+                    "response_format": fmt if fmt else "text",
                     "temperature": temperature,
                     **({"language": language} if language else {}),
+                    **({"prompt": prompt} if prompt else {}),
+                    **({"hotwords": hotwords} if hotwords else {}),
                 },
             )
 
@@ -87,20 +92,22 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         endpoint: str,
         temperature: float,
         model: str,
-        language: Optional[str] = None,
-        format: Optional[str] = None,
-        prompt: Optional[str] = None,
-        hotwords: Optional[str] = None,
+        language: str | None = None,
+        fmt: str | None = None,
+        prompt: str | None = None,
+        hotwords: str | None = None,
     ) -> Generator[str, None, None]:
         with open(file_path, "rb") as file:
             kwargs = {
                 "files": {"file": file},
                 "data": {
-                    "response_format": "text" if not format else format,
+                    "response_format": fmt if fmt else "text",
                     "temperature": temperature,
                     "model": model,
                     "stream": True,
                     **({"language": language} if language else {}),
+                    **({"prompt": prompt} if prompt else {}),
+                    **({"hotwords": hotwords} if hotwords else {}),
                 },
             }
             with connect_sse(http_client, "POST", endpoint, **kwargs) as event_source:
@@ -111,12 +118,8 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         models = openai_client.models.list().data
         model_names: list[str] = [model.id for model in models]
         assert config.whisper.model in model_names
-        recommended_models = {
-            model for model in model_names if model.startswith("Systran")
-        }
-        other_models = [
-            model for model in model_names if model not in recommended_models
-        ]
+        recommended_models = {model for model in model_names if model.startswith("Systran")}
+        other_models = [model for model in model_names if model not in recommended_models]
         model_names = list(recommended_models) + other_models
         return gr.Dropdown(
             # no idea why it's complaining
@@ -124,9 +127,9 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
             label="Model",
             value=config.whisper.model,
         )
- 
+
     languages_dropdown = gr.Dropdown(
-        choices=[str(l) for l in Language],
+        choices=[str(language) for language in Language],
         label="Language",
         value=config.default_language,
     )
@@ -135,16 +138,8 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         label="Response Format",
         value="text",
     )
-    prompt_input = gr.Textbox(
-        lines=2,
-        placeholder="Enter your prompt here",
-        label="Prompt"
-    )
-    hotwords_list = gr.Textbox(
-        lines=2,
-        placeholder="Enter hotwords separated by commas",
-        label="Hotwords"
-    )
+    prompt_input = gr.Textbox(lines=2, placeholder="Enter your prompt here", label="Prompt")
+    hotwords_list = gr.Textbox(lines=2, placeholder="Enter hotwords separated by commas", label="Hotwords")
 
     model_dropdown = gr.Dropdown(
         choices=[config.whisper.model],
@@ -156,9 +151,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         label="Task",
         value=Task.TRANSCRIBE,
     )
-    temperature_slider = gr.Slider(
-        minimum=0.0, maximum=1.0, step=0.1, label="Temperature", value=0.0
-    )
+    temperature_slider = gr.Slider(minimum=0.0, maximum=1.0, step=0.1, label="Temperature", value=0.0)
     stream_checkbox = gr.Checkbox(label="Stream", value=True)
     with gr.Interface(
         title="Whisper Playground",
