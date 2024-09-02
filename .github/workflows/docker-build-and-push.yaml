@@ -7,7 +7,7 @@ on:
   release:
     types: [published]
 env:
-  REGISTRY: docker-registry.cloud.felipegalvao.xyz
+  REGISTRY: docker-registry.server.cloud.felipegalvao.xyz
   IMAGE_NAME: galvaofelipe/faster-whisper-server
 jobs:
   docker:
@@ -28,7 +28,7 @@ jobs:
         id: meta-cuda
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cuda
           flavor: |
             suffix=-cuda,onlatest=true
           tags: |
@@ -52,7 +52,7 @@ jobs:
         id: meta-cpu
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cpu
           flavor: |
             suffix=-cpu,onlatest=true
           tags: |
@@ -70,4 +70,3 @@ jobs:
           tags: ${{ steps.meta-cpu.outputs.tags }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cpu
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-cpu,mode=max
-          
