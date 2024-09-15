@@ -4,6 +4,7 @@ import gradio as gr
 import httpx
 from httpx_sse import connect_sse
 from openai import OpenAI
+from typing import Literal
 
 from faster_whisper_server.config import Config, Language, Task
 
@@ -26,6 +27,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         stream: bool,
         language: str | None = None,
         fmt: str | None = None,
+        timestamp_granularities: list[Literal["segment", "word"]] = ["segment"],
         prompt: str | None = None,
         hotwords: str | None = None,
     ) -> Generator[str, None, None]:
@@ -37,12 +39,13 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         if stream:
             previous_transcription = ""
             for transcription in streaming_audio_task(
-                file_path,
                 endpoint,
-                temperature,
+                file_path,
                 model,
+                temperature,
                 language=language,
                 fmt=fmt,
+                timestamp_granularities=timestamp_granularities,
                 prompt=prompt,
                 hotwords=hotwords,
             ):
@@ -50,23 +53,25 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                 yield previous_transcription
         else:
             yield audio_task(
-                file_path,
                 endpoint,
-                temperature,
+                file_path,
                 model,
+                temperature,
                 language=language,
                 fmt=fmt,
+                timestamp_granularities=timestamp_granularities,
                 prompt=prompt,
                 hotwords=hotwords,
             )
 
     def audio_task(
-        file_path: str,
         endpoint: str,
-        temperature: float,
+        file_path: str,
         model: str,
+        temperature: float,
         language: str | None = None,
         fmt: str | None = None,
+        timestamp_granularities: list[str] = ["segment"],
         prompt: str | None = None,
         hotwords: str | None = None,
     ) -> str:
@@ -81,6 +86,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                     **({"language": language} if language else {}),
                     **({"prompt": prompt} if prompt else {}),
                     **({"hotwords": hotwords} if hotwords else {}),
+                    **({"timestamp_granularities": timestamp_granularities} if timestamp_granularities else {}),
                 },
             )
 
@@ -88,12 +94,13 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         return response.text
 
     def streaming_audio_task(
-        file_path: str,
         endpoint: str,
-        temperature: float,
+        file_path: str,
         model: str,
+        temperature: float,
         language: str | None = None,
         fmt: str | None = None,
+        timestamp_granularities: list[str] = ["segment"],
         prompt: str | None = None,
         hotwords: str | None = None,
     ) -> Generator[str, None, None]:
@@ -108,6 +115,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
                     **({"language": language} if language else {}),
                     **({"prompt": prompt} if prompt else {}),
                     **({"hotwords": hotwords} if hotwords else {}),
+                    **({"timestamp_granularities": timestamp_granularities} if timestamp_granularities else {}),
                 },
             }
             with connect_sse(http_client, "POST", endpoint, **kwargs) as event_source:
@@ -140,6 +148,11 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
     )
     prompt_input = gr.Textbox(lines=2, placeholder="Enter your prompt here", label="Prompt")
     hotwords_list = gr.Textbox(lines=2, placeholder="Enter hotwords separated by commas", label="Hotwords")
+    granularity_checkbox = gr.CheckboxGroup(
+        choices=["segment", "word"],
+        label="Granularity",
+        value=["segment"],
+    )
 
     model_dropdown = gr.Dropdown(
         choices=[config.whisper.model],
@@ -166,6 +179,7 @@ def create_gradio_demo(config: Config) -> gr.Blocks:
         additional_inputs=[
             languages_dropdown,
             format_dropdown,
+            granularity_checkbox,
             prompt_input,
             hotwords_list,
         ],
