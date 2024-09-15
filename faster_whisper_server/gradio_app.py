@@ -1,10 +1,10 @@
 from collections.abc import Generator
+from typing import Literal
 
 import gradio as gr
 import httpx
 from httpx_sse import connect_sse
 from openai import OpenAI
-from typing import Literal
 
 from faster_whisper_server.config import Config, Language, Task
 
